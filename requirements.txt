@@ -1,0 +1,7 @@
+streamlit
+pyscreenshot         # cross-platform screen capture
+pillow               # image handling
+opencv-python        # optional: image pre-/post-processing
+pytesseract          # OCR (for detecting app name)
+google-generativeai  # Gemini SDK
+python-dotenv        # load .env keys
