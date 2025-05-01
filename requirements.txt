@@ -5,3 +5,6 @@ opencv-python        # optional: image pre-/post-processing
 pytesseract          # OCR (for detecting app name)
 google-generativeai  # Gemini SDK
 python-dotenv        # load .env keys
+speechrecognition
+pyttsx3
+pyaudio
