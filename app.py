@@ -19,7 +19,7 @@ st.write("Capture your screen, pick a window, ask questions, and get step-by-ste
 from detector import extract_text_from_image
 import os
 
-# 1️⃣ Capture Screenshot
+# Capture Screenshot
 if st.button("📸 Capture Screenshot"):
     img = capture_screen()
     st.session_state.img = img
@@ -35,7 +35,7 @@ if st.button("📸 Capture Screenshot"):
             all_windows.append(title)
     st.session_state.window_list = all_windows
 
-    # ── NEW: OCR extraction & save ────────────────────────────────────────────────
+    #OCR extraction and save
     ocr_output_dir = "outputs"
     ocr_filename = "latest_screenshot_text.txt"
     os.makedirs(ocr_output_dir, exist_ok=True)
@@ -50,7 +50,7 @@ if st.button("📸 Capture Screenshot"):
     st.code(extracted_text[:500] + ("..." if len(extracted_text) > 500 else ""))
     
     
-# 2️⃣ Select Target Window and Ask Question
+# Select Target Window and Ask Question
 if st.session_state.get("img") and st.session_state.get("window_list"):
     # Detect and display the raw active window title
     raw_title = detect_app_raw()
@@ -68,7 +68,7 @@ if st.session_state.get("img") and st.session_state.get("window_list"):
     st.markdown("### ❓ Ask your question")
     col1, col2 = st.columns([3, 1])
     with col2:
-        if st.button("🎙️ Speak your question"):
+        if st.button("🎙️"):
             spoken = recognize_speech()
             if "⚠️" not in spoken:
                 st.session_state.spoken_input = spoken
