@@ -16,6 +16,9 @@ st.set_page_config(
 st.title("🖥️ HowToHelper")
 st.write("Capture your screen, pick a window, ask questions, and get step-by-step guidance.")
 
+from detector import extract_text_from_image
+import os
+
 # 1️⃣ Capture Screenshot
 if st.button("📸 Capture Screenshot"):
     img = capture_screen()
@@ -30,9 +33,23 @@ if st.button("📸 Capture Screenshot"):
         title = w.title.strip()
         if title and not getattr(w, "isMinimized", False):
             all_windows.append(title)
-
     st.session_state.window_list = all_windows
 
+    # ── NEW: OCR extraction & save ────────────────────────────────────────────────
+    ocr_output_dir = "outputs"
+    ocr_filename = "latest_screenshot_text.txt"
+    os.makedirs(ocr_output_dir, exist_ok=True)
+    ocr_path = os.path.join(ocr_output_dir, ocr_filename)
+
+    # run OCR and write to file
+    extracted_text = extract_text_from_image(img, out_path=ocr_path)
+    st.success(f"OCR text extracted and saved to `{ocr_path}`")
+
+    # optionally display a snippet of the OCR text
+    st.markdown("**📄 Extracted text preview:**")
+    st.code(extracted_text[:500] + ("..." if len(extracted_text) > 500 else ""))
+    
+    
 # 2️⃣ Select Target Window and Ask Question
 if st.session_state.get("img") and st.session_state.get("window_list"):
     # Detect and display the raw active window title
