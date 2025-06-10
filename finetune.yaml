@@ -1,0 +1,12 @@
+project:         your-gcp-project-id
+location:        us-central1
+base_model:      gemini-2.0-flash
+display_name:    howtohelper-v1
+train_file:      gs://your-bucket/data/processed/wikihow.jsonl
+val_file:        gs://your-bucket/data/processed/wikihow_val.jsonl
+aux_data:        gs://your-bucket/data/processed/so_qa.jsonl  # optional
+lr:              1e-5
+batch_size:      8
+training_steps:  2000
+temperature:     0.2
+max_output_tokens: 512

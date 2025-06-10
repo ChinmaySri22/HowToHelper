@@ -8,3 +8,4 @@ python-dotenv        # load .env keys
 speechrecognition
 pyttsx3
 pyaudio
+gtts

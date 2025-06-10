@@ -1,10 +1,15 @@
+import os
 import streamlit as st
 import pygetwindow as gw
 
 from capture import capture_screen
-from detector import detect_app_raw
+from detector import detect_app_raw, extract_text_from_image
 from gemini_generator import ask_gemini
 from utils import recognize_speech, generate_tts_audio, pil_to_base64
+
+# Load .env (for GEMINI_API_KEY & FINE_TUNED_MODEL)
+from dotenv import load_dotenv
+load_dotenv()
 
 # Streamlit page configuration
 st.set_page_config(
@@ -16,10 +21,7 @@ st.set_page_config(
 st.title("🖥️ HowToHelper")
 st.write("Capture your screen, pick a window, ask questions, and get step-by-step guidance.")
 
-from detector import extract_text_from_image
-import os
-
-# Capture Screenshot
+# ─────────── Screenshot & OCR ───────────
 if st.button("📸 Capture Screenshot"):
     img = capture_screen()
     st.session_state.img = img
@@ -28,47 +30,45 @@ if st.button("📸 Capture Screenshot"):
     st.image(pil_to_base64(img), caption="Latest Screenshot", use_container_width=True)
     
     # Gather window titles
-    all_windows = []
-    for w in gw.getAllWindows():
-        title = w.title.strip()
-        if title and not getattr(w, "isMinimized", False):
-            all_windows.append(title)
+    all_windows = [
+        w.title.strip()
+        for w in gw.getAllWindows()
+        if w.title.strip() and not getattr(w, "isMinimized", False)
+    ]
     st.session_state.window_list = all_windows
 
-    #OCR extraction and save
+    # OCR extraction and save
     ocr_output_dir = "outputs"
-    ocr_filename = "latest_screenshot_text.txt"
     os.makedirs(ocr_output_dir, exist_ok=True)
-    ocr_path = os.path.join(ocr_output_dir, ocr_filename)
+    ocr_path = os.path.join(ocr_output_dir, "latest_screenshot_text.txt")
 
-    # run OCR and write to file
     extracted_text = extract_text_from_image(img, out_path=ocr_path)
     st.success(f"OCR text extracted and saved to `{ocr_path}`")
 
-    # optionally display a snippet of the OCR text
+    # Display a snippet
     st.markdown("**📄 Extracted text preview:**")
     st.code(extracted_text[:500] + ("..." if len(extracted_text) > 500 else ""))
-    
-    
-# Select Target Window and Ask Question
+
+# ─────────── Question & Answer ───────────
 if st.session_state.get("img") and st.session_state.get("window_list"):
-    # Detect and display the raw active window title
+    # Show raw active window
     raw_title = detect_app_raw()
     st.info(f"🔎 OS reports active window title: `{raw_title}`")
 
-    # Window selection
+    # Let user pick which window
     choice = st.selectbox(
         "Select the application window you want help with:",
         st.session_state.window_list,
-        index=st.session_state.window_list.index(raw_title) if raw_title in st.session_state.window_list else 0
+        index=st.session_state.window_list.index(raw_title)
+              if raw_title in st.session_state.window_list else 0
     )
     st.session_state.selected_title = choice
 
-    # User question input and speech
+    # Speech‑to‑text
     st.markdown("### ❓ Ask your question")
     col1, col2 = st.columns([3, 1])
     with col2:
-        if st.button("🎙️"):
+        if st.button("🎙️ Speak", key="mic"):
             spoken = recognize_speech()
             if "⚠️" not in spoken:
                 st.session_state.spoken_input = spoken
@@ -80,30 +80,27 @@ if st.session_state.get("img") and st.session_state.get("window_list"):
         user_question = st.text_input(
             "Type your question here:",
             value=st.session_state.get("spoken_input", ""),
-            key="text_input_question"
+            key="text_input"
         )
 
-    # Ask Gemini
+    # Ask the (fine‑tuned) model
     if user_question and st.button("🚀 Ask HowToHelper"):
         with st.spinner("🧠 Thinking..."):
-            full_question = f"[App: {st.session_state.selected_title}] {user_question}"
-            desc = f"Screenshot size: {st.session_state.img.size}"
+            full_q = f"[App: {st.session_state.selected_title}] {user_question}"
+            desc   = f"Screenshot size: {st.session_state.img.size}"
             answer = ask_gemini(
                 app=st.session_state.selected_title,
-                question=full_question,
+                question=full_q,
                 screenshot_desc=desc
             )
         st.session_state.last_answer = answer
 
-    # Display answer & play audio
+    # Show answer & TTS
     if st.session_state.get("last_answer"):
         st.markdown("### 🧠 Gemini says:")
         for line in st.session_state.last_answer.splitlines():
             st.write(line)
 
         if st.button("🔊 Play Response", key="play_btn"):
-            st.session_state.play_audio = True
-
-        if st.session_state.get("play_audio"):
             audio_bytes = generate_tts_audio(st.session_state.last_answer)
             st.audio(audio_bytes, format="audio/mp3")

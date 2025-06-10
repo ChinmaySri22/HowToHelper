@@ -1,3 +1,5 @@
+#utils.py
+
 import io
 import base64
 from PIL import Image
@@ -12,22 +14,21 @@ def pil_to_base64(img: Image.Image) -> str:
     return f"data:image/png;base64,{data}"
 
 def recognize_speech():
-    """Capture voice and return transcribed text using Google STT."""
     r = sr.Recognizer()
     with sr.Microphone() as source:
-        print("🎙️ Say something...")
-        r.adjust_for_ambient_noise(source, duration=1)
-
+        # raise energy threshold and allow more calibration time
+        r.energy_threshold = 400
+        r.dynamic_energy_threshold = True
+        r.adjust_for_ambient_noise(source, duration=2)  
         try:
-            audio = r.listen(source, timeout=10, phrase_time_limit=5)
-            print("🧠 Recognizing...")
-            text = r.recognize_google(audio)
-            return text
-
+            print("🎙️ Listening…")
+            audio = r.listen(source, timeout=10, phrase_time_limit=7)
+            print("🧠 Recognizing…")
+            return r.recognize_google(audio)
         except sr.WaitTimeoutError:
             return "⚠️ No speech detected. Please try again."
         except sr.UnknownValueError:
-            return "⚠️ Sorry, I couldn't understand that."
+            return "⚠️ Sorry, I couldn't understand that. (try speaking more clearly or closer to the mic)"
         except sr.RequestError:
             return "⚠️ Network error. Please check your connection."
 
